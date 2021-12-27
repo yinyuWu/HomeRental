@@ -1,20 +1,64 @@
-type Blog @model {
-  id: ID!
-  title: String!
-  posts: [Post] @connection(keyName: "byBlog", fields: ["id"])
+type Address {
+  street: String!
+  city: String!
+  state: String!
+  postcode: String!
+  country: String!
 }
 
-type Post @model @key(name: "byBlog", fields: ["blogID"]) {
-  id: ID!
-  title: String!
-  blogID: ID!
-  blog: Blog @connection(fields: ["blogID"])
-  comments: [Comment] @connection(keyName: "byPost", fields: ["id"])
+type Bedroom {
+  id: Int!
+  numOfBeds: Int!
 }
 
-type Comment @model @key(name: "byPost", fields: ["postID", "content"]) {
+type Amenity {
+  essentials: Boolean!
+  airConditioning: Boolean!
+  wirelessInternet: Boolean!
+  washer: Boolean!
+  kitchen: Boolean!
+  pool: Boolean!
+}
+
+type Metadata {
+  bathrooms: Int!
+  type: Int!
+  bedrooms: [Bedroom]
+  amenities: Amenity!
+  totalBeds: Int!
+  images: [String]
+}
+
+type Review {
+  rating: Int!
+  user: String!
+  text: String!
+}
+
+type DateRange {
+  start: String!
+  end: String!
+}
+
+type Listing @model {
   id: ID!
-  postID: ID!
-  post: Post @connection(fields: ["postID"])
-  content: String!
+  title: String!
+  owner: String!
+  address: Address!
+  price: Int!
+  thumbnail: String!
+  metadata: Metadata!
+  reviews: [Review]
+  availability: [String]
+  published: Boolean!
+  postedOn: String!
+}
+
+type Booking @model {
+  id: ID!
+  owner: String!
+  dateRange: DateRange!
+  totalPrice: Int!
+  listingId: ID!
+  status: String!
 }
