@@ -4,6 +4,7 @@ import { makeStyles } from '@mui/styles';
 import Joi from 'joi-browser';
 import AlertDialog from '../components/AlertDialog';
 import { Auth } from 'aws-amplify';
+import { useNavigate } from 'react-router-dom';
 
 const useStyles = makeStyles({
   signup: {
@@ -37,6 +38,7 @@ const schema = {
 
 export default function SignUp() {
   const classes = useStyles();
+  const navigate = useNavigate();
   const [user, setUser] = useState({});
   const [error, setError] = useState({});
   const [open, setOpen] = useState(false);
@@ -116,6 +118,8 @@ export default function SignUp() {
       });
       console.log(response);
       setLoading(false);
+      navigate('/signup/confirmation');
+      localStorage.setItem('username', user.name);
     } catch (errorResponse) {
       console.log('error signing up:', errorResponse.message);
       setOpen(true);
