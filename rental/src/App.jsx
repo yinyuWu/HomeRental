@@ -11,7 +11,7 @@ function App() {
   return (
     <StyledEngineProvider injectFirst>
       <div>
-        <Navbar />
+        <Navbar user={localStorage.getItem('username') || ''}/>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/signup" element={<SignUp />} />

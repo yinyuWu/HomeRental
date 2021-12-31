@@ -1,7 +1,8 @@
 import React from 'react';
 import { makeStyles } from '@mui/styles';
-import { AppBar, Toolbar, Typography } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
+import { Auth } from 'aws-amplify';
 
 const useStyles = makeStyles({
   nav: {
@@ -91,8 +92,20 @@ const useStyles = makeStyles({
   }
 });
 
-export default function Navbar() {
+export default function Navbar(props) {
   const classes = useStyles();
+
+  const handleLogout = async () => {
+    // console.log('logout...');
+    try {
+      await Auth.signOut({ global: true });
+      localStorage.removeItem('username');
+      localStorage.removeItem('email');
+      window.location = '/';
+    } catch (error) {
+      console.log('error signing out: ', error);
+    }
+  }
 
   return (
     <AppBar>
@@ -100,13 +113,21 @@ export default function Navbar() {
         <Typography variant='h6' component='div' sx={{ color: '#FF5A5F', fontSize: '1.8rem', fontWeight: 700 }}>
           AirBrB
         </Typography>
-        <div className={classes.links}>
-          <Link to="/" className={classes.navlink}>All Listings</Link>
-          <div>
-            <Link to="/signup" className={classes.outlinedLink}>Register</Link>
-            <Link to="/signin" className={classes.filledLink}>Login</Link>
+        {props.user
+          ? <div className={classes.links}>
+            <div className={classes.listings}>
+              <Link to="/" className={classes.navlink}>All Listings</Link>
+              <Link to="/my-listings" className={classes.navlink}>My Listings</Link>
+            </div>
+            <Button className={classes.outlinedLink} variant="outlined" onClick={handleLogout}>Logout</Button>
           </div>
-        </div>
+          : <div className={classes.links}>
+            <Link to="/" className={classes.navlink}>All Listings</Link>
+            <div>
+              <Link to="/signup" className={classes.outlinedLink}>Register</Link>
+              <Link to="/signin" className={classes.filledLink}>Login</Link>
+            </div>
+          </div>}
       </Toolbar>
     </AppBar>
   )
