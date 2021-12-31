@@ -7,7 +7,7 @@ import { Auth } from 'aws-amplify';
 import { useNavigate } from 'react-router-dom';
 
 const useStyles = makeStyles({
-  signup: {
+  main: {
     width: '50%',
     margin: '20vh auto'
   },
@@ -36,13 +36,58 @@ const schema = {
   confirmPassword: Joi.string().required()
 }
 
-export default function SignUp() {
+function SignUpConfirmation(props) {
   const classes = useStyles();
   const navigate = useNavigate();
+  const [user, setUser] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const name = e.target.name;
+    const value = e.target.value;
+    setUser({ ...user, [name]: value });
+  }
+
+  const handleConfirm = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    // call register api
+    try {
+      await Auth.confirmSignUp(props.username, user.code);
+      setLoading(false);
+      navigate('/signin');
+    } catch (errorResponse) {
+      console.log('error signing in', errorResponse);
+      props.handleError(errorResponse.message);
+      props.handleOpen();
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Box component="form" sx={{ display: 'flex', flexDirection: 'column', p: 1, m: 1 }} onSubmit={handleConfirm}>
+      <h4 className={classes.title}>Sign Up Confirmation</h4>
+      <TextField
+        required
+        label="Confirmation Code"
+        variant="outlined"
+        margin="normal"
+        name="code"
+        value={user.code || ''}
+        onChange={handleChange}
+      />
+      <Button variant="contained" className={classes.btn} type="submit" disabled={loading}>{loading ? 'Confirming...' : 'Confirm'}</Button>
+    </Box>
+  )
+}
+
+export default function SignUp() {
+  const classes = useStyles();
   const [user, setUser] = useState({});
   const [error, setError] = useState({});
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const validateInput = (name, value) => {
     const inputSchema = { [name]: schema[name] };
@@ -89,6 +134,10 @@ export default function SignUp() {
     setError(errors);
   }
 
+  const handleConfirmError = (confirmError) => {
+    setError({ input: confirmError });
+  }
+
   const handleClose = () => {
     setOpen(false);
   }
@@ -118,8 +167,7 @@ export default function SignUp() {
       });
       console.log(response);
       setLoading(false);
-      navigate('/signup/confirmation');
-      localStorage.setItem('username', user.name);
+      setShowConfirm(true);
     } catch (errorResponse) {
       console.log('error signing up:', errorResponse.message);
       setOpen(true);
@@ -129,63 +177,64 @@ export default function SignUp() {
   }
 
   return (
-    <div className={classes.signup}>
-      <Box component="form" onSubmit={handleRegister} sx={{ display: 'flex', flexDirection: 'column', p: 1, m: 1 }}>
-        <h4 className={classes.title}>AirBrb Register</h4>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', '& > :not(style)': { width: '45%' } }}>
+    <div className={classes.main}>
+      {showConfirm ? <SignUpConfirmation username={user.name} handleOpen={() => setOpen(true)} handleError={handleConfirmError} /> :
+        <Box component="form" onSubmit={handleRegister} sx={{ display: 'flex', flexDirection: 'column', p: 1, m: 1 }}>
+          <h4 className={classes.title}>AirBrb Register</h4>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', '& > :not(style)': { width: '45%' } }}>
+            <TextField
+              required
+              label="Email"
+              variant="outlined"
+              margin="normal"
+              name="email"
+              value={user.email || ''}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              error={error.email && error.email.length > 0}
+              helperText={error.email}
+            />
+            <TextField
+              required
+              label="Name"
+              variant="outlined"
+              margin="normal"
+              name="name"
+              value={user.name || ''}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              error={error.name && error.name.length > 0}
+              helperText={error.name}
+            />
+          </Box>
           <TextField
             required
-            label="Email"
+            label="Password"
+            type="password"
             variant="outlined"
             margin="normal"
-            name="email"
-            value={user.email || ''}
+            name="password"
+            value={user.password || ''}
             onChange={handleChange}
             onBlur={handleBlur}
-            error={error.email && error.email.length > 0}
-            helperText={error.email}
+            error={error.password && error.password.length > 0}
+            helperText={error.password}
           />
           <TextField
             required
-            label="Name"
+            label="Confirm Password"
+            type="password"
             variant="outlined"
             margin="normal"
-            name="name"
-            value={user.name || ''}
+            name="confirmPassword"
+            value={user.confirmPassword || ''}
             onChange={handleChange}
             onBlur={handleBlur}
-            error={error.name && error.name.length > 0}
-            helperText={error.name}
+            error={error.confirmPassword && error.confirmPassword.length > 0}
+            helperText={error.confirmPassword}
           />
-        </Box>
-        <TextField
-          required
-          label="Password"
-          type="password"
-          variant="outlined"
-          margin="normal"
-          name="password"
-          value={user.password || ''}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={error.password && error.password.length > 0}
-          helperText={error.password}
-        />
-        <TextField
-          required
-          label="Confirm Password"
-          type="password"
-          variant="outlined"
-          margin="normal"
-          name="confirmPassword"
-          value={user.confirmPassword || ''}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={error.confirmPassword && error.confirmPassword.length > 0}
-          helperText={error.confirmPassword}
-        />
-        <Button variant="contained" className={classes.btn} type="submit" disabled={loading}>{ loading ? 'Registering' : 'Register'}</Button>
-      </Box>
+          <Button variant="contained" className={classes.btn} type="submit" disabled={loading}>{loading ? 'Registering' : 'Register'}</Button>
+        </Box>}
       <AlertDialog open={open} onClose={handleClose} text={error.input} />
     </div>
   )

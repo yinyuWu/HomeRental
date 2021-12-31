@@ -3,6 +3,7 @@ import { makeStyles } from '@mui/styles';
 import { Box, Button, TextField } from '@mui/material';
 import { Auth } from 'aws-amplify';
 import AlertDialog from '../components/AlertDialog';
+import { useNavigate } from 'react-router-dom';
 
 const useStyles = makeStyles({
   signin: {
@@ -29,6 +30,7 @@ const useStyles = makeStyles({
 
 export default function SignIn() {
   const classes = useStyles();
+  const navigate = useNavigate();
   const [user, setUser] = useState({});
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -52,6 +54,9 @@ export default function SignIn() {
       const response = await Auth.signIn(user.email, user.password);
       console.log(response);
       setLoading(false);
+      localStorage.setItem('username', response.username);
+      localStorage.setItem('email', response.attributes.email);
+      navigate('/');
     } catch (errorResponse) {
       console.log('error signing in', errorResponse);
       setError({ input: errorResponse.message });

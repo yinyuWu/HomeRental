@@ -3,6 +3,7 @@ import { makeStyles } from '@mui/styles';
 import { Box, Button, TextField } from '@mui/material';
 import { Auth } from 'aws-amplify';
 import AlertDialog from '../components/AlertDialog';
+import { useNavigate } from 'react-router-dom';
 
 const useStyles = makeStyles({
   confirm: {
@@ -29,6 +30,7 @@ const useStyles = makeStyles({
 
 export default function SignUpConfirmation() {
   const classes = useStyles();
+  const navigate = useNavigate();
   const [user, setUser] = useState({});
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -47,12 +49,11 @@ export default function SignUpConfirmation() {
   const handleConfirm = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // console.log('confirmation code: ', user.code);
     // call register api
     try {
-      const response = await Auth.confirmSignUp(localStorage.getItem('username'), user.code);
-      console.log(response);
+      await Auth.confirmSignUp(localStorage.getItem('username'), user.code);
       setLoading(false);
+      navigate('/signin')
     } catch (errorResponse) {
       console.log('error signing in', errorResponse);
       setError({ input: errorResponse.message });
