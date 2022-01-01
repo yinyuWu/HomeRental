@@ -5,7 +5,7 @@ import SignUp from './views/SignUp';
 import SignIn from './views/SignIn';
 import Navbar from './components/Navbar';
 import { StyledEngineProvider } from '@mui/material';
-import SignUpConfirmation from './views/SignUpConfirmation';
+import MyListings from './views/MyListings';
 
 function App() {
   return (
@@ -16,7 +16,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup/confirmation" element={<SignUpConfirmation />} />
+          <Route path="/my-listings" element={<MyListings />} />
         </Routes>
       </div>
     </StyledEngineProvider>
