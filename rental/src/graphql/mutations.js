@@ -22,6 +22,7 @@ export const createListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
+        numofBedrooms
         bedrooms {
           id
           numOfBeds
@@ -44,7 +45,6 @@ export const createListing = /* GraphQL */ `
       }
       availability
       published
-      postedOn
       createdAt
       updatedAt
     }
@@ -71,6 +71,7 @@ export const updateListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
+        numofBedrooms
         bedrooms {
           id
           numOfBeds
@@ -93,7 +94,6 @@ export const updateListing = /* GraphQL */ `
       }
       availability
       published
-      postedOn
       createdAt
       updatedAt
     }
@@ -120,6 +120,7 @@ export const deleteListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
+        numofBedrooms
         bedrooms {
           id
           numOfBeds
@@ -142,7 +143,6 @@ export const deleteListing = /* GraphQL */ `
       }
       availability
       published
-      postedOn
       createdAt
       updatedAt
     }

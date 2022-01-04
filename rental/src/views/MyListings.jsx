@@ -1,10 +1,14 @@
 import React from 'react';
+import AlertDialog from '../components/AlertDialog';
 import { makeStyles } from '@mui/styles';
 import { Box, Button, Dialog, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Checkbox, FormGroup, FormControlLabel, Input, IconButton} from '@mui/material';
 import { useState, useEffect } from 'react';
 import Close from '@mui/icons-material/Close';
-import { API, graphqlOperation } from 'aws-amplify';
+import { API, graphqlOperation, Storage } from 'aws-amplify';
 import { listListings } from '../graphql/queries';
+import { createListing } from '../graphql/mutations';
+import MyListingItem from '../components/MyListingItem';
+import { v4 as uuid } from 'uuid';
 
 const useStyles = makeStyles({
   container: {
@@ -73,6 +77,7 @@ function CreateDialog(props) {
     pool: false,
   });
   const [image, setImage] = useState(null);
+  const [alert, setAlert] = useState(false);
 
   const handleChange = (e) => {
     const name = e.target.name;
@@ -109,8 +114,29 @@ function CreateDialog(props) {
     }
   }
 
-  const handleCreate = () => {
-    console.log('create a listing');
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    const { title, street, city, state, postcode, country, bathrooms, type, price, numOfBedrooms, bedrooms, thumbnail } = listing;
+    // calculate number of beds
+    let totalBeds = 0;
+    for (const bedroom of bedrooms) {
+      totalBeds += bedroom.numOfBeds;
+    }
+    const address = { street, city, state, postcode, country };
+    const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds };
+    if (!thumbnail) {
+      setAlert(true);
+      return;
+    }
+    const { key } = await Storage.put(`${uuid()}.jpeg`, thumbnail, { contentType: 'image/*' } );
+    const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email') };
+    try {
+      const response = await API.graphql(graphqlOperation(createListing, { input: data }));
+      console.log('response: ', response);
+    } catch (err) {
+      console.log(' error: ', err.errors[0].message);
+    }
+    console.log(data);
   }
 
   return (
@@ -307,6 +333,7 @@ function CreateDialog(props) {
           <Button variant="contained" type="submit" className={classes.formSubmitBtn}>Create</Button>
         </Box>
       </DialogContent>
+      <AlertDialog open={alert} onClose={() => setAlert(false)} text='Invalid Input' />
     </Dialog>
   )
 }
@@ -314,6 +341,7 @@ function CreateDialog(props) {
 export default function MyListings() {
   const classes = useStyles();
   const [open, setOpen] = useState(false);
+  const [listings, setListings] = useState([]);
 
   useEffect(() => {
     getMyListing();
@@ -323,6 +351,7 @@ export default function MyListings() {
     try {
       const listingData = await API.graphql(graphqlOperation(listListings));
       const myListings = listingData.data.listListings.items;
+      setListings(myListings);
       console.log('my listings: ', myListings);
     } catch (err) {
       console.log('error: ', err);
@@ -333,6 +362,15 @@ export default function MyListings() {
     <div className={classes.container}>
       <h3>My Listings</h3>
       <Button className={classes.createBtn} onClick={() => setOpen(true)}>Create a New Listing</Button>
+      <div className={classes.list}>
+        {listings.length > 0
+          ? listings.map(listing => {
+            return (<div key={listing.id}>
+              <MyListingItem listing={listing} />
+            </div>)
+          })
+          : <p>No Listings</p>}
+      </div>
       <CreateDialog open={open} onClose={() => setOpen(false)} />
     </div>
   )

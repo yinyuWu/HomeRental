@@ -23,6 +23,7 @@ type Amenity {
 type Metadata {
   bathrooms: Int!
   type: Int!
+  numofBedrooms: Int!
   bedrooms: [Bedroom]
   amenities: Amenity!
   totalBeds: Int!
@@ -51,7 +52,6 @@ type Listing @model {
   reviews: [Review]
   availability: [String]
   published: Boolean!
-  postedOn: String!
 }
 
 type Booking @model {

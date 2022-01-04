@@ -46,5 +46,11 @@
         }
       }
     }
+  },
+  "storage": {
+    "rentalStorage": {
+      "service": "S3",
+      "providerPlugin": "awscloudformation"
+    }
   }
 }
