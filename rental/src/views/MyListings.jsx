@@ -65,7 +65,7 @@ const useStyles = makeStyles({
 });
 
 function CreateDialog(props) {
-  const { open, onClose } = props;
+  const { open, onClose, getMyListing } = props;
   const classes = useStyles();
   const [listing, setListing] = useState({});
   const [amenities, setAmenities] = useState({
@@ -78,6 +78,7 @@ function CreateDialog(props) {
   });
   const [image, setImage] = useState(null);
   const [alert, setAlert] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const name = e.target.name;
@@ -116,6 +117,7 @@ function CreateDialog(props) {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    setLoading(true);
     const { title, street, city, state, postcode, country, bathrooms, type, price, numOfBedrooms, bedrooms, thumbnail } = listing;
     // calculate number of beds
     let totalBeds = 0;
@@ -129,14 +131,17 @@ function CreateDialog(props) {
       return;
     }
     const { key } = await Storage.put(`${uuid()}.jpeg`, thumbnail, { contentType: 'image/*' } );
-    const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email') };
+    const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email'), published: false };
+    console.log(data);
     try {
       const response = await API.graphql(graphqlOperation(createListing, { input: data }));
       console.log('response: ', response);
     } catch (err) {
       console.log(' error: ', err.errors[0].message);
     }
-    console.log(data);
+    setLoading(false);
+    onClose();
+    getMyListing();
   }
 
   return (
@@ -330,7 +335,7 @@ function CreateDialog(props) {
             </Button>
           </label>
           {image && <img src={image} alt="thumbnail" className={classes.image} />}
-          <Button variant="contained" type="submit" className={classes.formSubmitBtn}>Create</Button>
+          <Button variant="contained" type="submit" className={classes.formSubmitBtn} disabled={loading}>{loading ? 'Creating...' : 'Create'}</Button>
         </Box>
       </DialogContent>
       <AlertDialog open={alert} onClose={() => setAlert(false)} text='Invalid Input' />
@@ -351,6 +356,10 @@ export default function MyListings() {
     try {
       const listingData = await API.graphql(graphqlOperation(listListings));
       const myListings = listingData.data.listListings.items;
+      myListings.forEach(async listing => {
+        const imageURL = await Storage.get(listing.thumbnail);
+        listing.thumbnailURL = imageURL;
+      });
       setListings(myListings);
       console.log('my listings: ', myListings);
     } catch (err) {
@@ -371,7 +380,7 @@ export default function MyListings() {
           })
           : <p>No Listings</p>}
       </div>
-      <CreateDialog open={open} onClose={() => setOpen(false)} />
+      <CreateDialog open={open} onClose={() => setOpen(false)} getMyListing={getMyListing}/>
     </div>
   )
 }

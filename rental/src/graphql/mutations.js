@@ -22,7 +22,7 @@ export const createListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds
@@ -71,7 +71,7 @@ export const updateListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds
@@ -120,7 +120,7 @@ export const deleteListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds

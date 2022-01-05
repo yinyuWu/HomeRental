@@ -19,7 +19,7 @@ export const onCreateListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds
@@ -65,7 +65,7 @@ export const onUpdateListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds
@@ -111,7 +111,7 @@ export const onDeleteListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds

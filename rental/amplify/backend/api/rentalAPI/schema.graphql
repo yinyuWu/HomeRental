@@ -23,7 +23,7 @@ type Amenity {
 type Metadata {
   bathrooms: Int!
   type: Int!
-  numofBedrooms: Int!
+  numOfBedrooms: Int!
   bedrooms: [Bedroom]
   amenities: Amenity!
   totalBeds: Int!

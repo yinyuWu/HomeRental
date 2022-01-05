@@ -88,7 +88,7 @@ export default function MyListingItem(props) {
 
   return (
     <Card variant='outlined' className={classes.card}>
-      <CardMedia component="img" image={listing.thumbnail || placeholder} alt="placeholder" className={classes.cardImage} />
+      <CardMedia component="img" image={listing.thumbnailURL || placeholder} alt="thumbnail" className={classes.cardImage} />
       <CardContent className={classes.cardContent}>
         <Typography className={classes.type}>
           {propertyTypes[listing.metadata.type - 1]}

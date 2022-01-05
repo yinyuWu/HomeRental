@@ -19,7 +19,7 @@ export const getListing = /* GraphQL */ `
       metadata {
         bathrooms
         type
-        numofBedrooms
+        numOfBedrooms
         bedrooms {
           id
           numOfBeds
@@ -70,7 +70,7 @@ export const listListings = /* GraphQL */ `
         metadata {
           bathrooms
           type
-          numofBedrooms
+          numOfBedrooms
           totalBeds
           images
         }
