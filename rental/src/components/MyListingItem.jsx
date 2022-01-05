@@ -1,7 +1,11 @@
 import React from 'react';
+import { useState } from 'react';
 import { makeStyles } from '@mui/styles';
-import { Card, CardContent, CardMedia, Rating, Typography } from '@mui/material';
-import { Star } from '@mui/icons-material';
+import { Box, Button, Card, CardContent, CardMedia, Dialog, DialogContent, DialogTitle, IconButton, Rating, TextField, Typography } from '@mui/material';
+import { Close, Star } from '@mui/icons-material';
+import { LocalizationProvider, DateRangePicker } from '@mui/lab';
+import DateFnsAdapter from '@mui/lab/AdapterDateFns';
+import { Link } from 'react-router-dom';
 import placeholder from '../images/placeholder.png';
 
 const useStyles = makeStyles({
@@ -85,10 +89,30 @@ export default function MyListingItem(props) {
   const classes = useStyles();
   const propertyTypes = ['Apartment', 'House', 'Loft'];
   const { listing } = props;
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState([null, null]);
+
+  const handleOpen = (e) => {
+    e.stopPropagation();
+    setOpen(true);
+  }
+
+  const handleClose = (e) => {
+    e.stopPropagation();
+    setOpen(false);
+  }
+
+  const handleUnpublish = () => {
+    console.log('unpublish');
+  }
+
+  const handleDelete = () => {
+    console.log('delete');
+  }
 
   return (
     <Card variant='outlined' className={classes.card}>
-      <CardMedia component="img" image={listing.thumbnailURL || placeholder} alt="thumbnail" className={classes.cardImage} />
+      <CardMedia component="img" image={listing.thumbnail ? listing.thumbnailURL : placeholder} alt="thumbnail" className={classes.cardImage} />
       <CardContent className={classes.cardContent}>
         <Typography className={classes.type}>
           {propertyTypes[listing.metadata.type - 1]}
@@ -107,6 +131,40 @@ export default function MyListingItem(props) {
           <span>({listing.reviews.length} reviews)</span>
           </Typography>}
       </CardContent>
+      <Link className={classes.bookingsLink} to="#" onClick={(e) => e.stopPropagation()}>view bookings</Link>
+      <div className={classes.btns}>
+        {!listing.published
+          ? <Button aria-describedby={listing.id} variant="outlined" className={classes.publishBtn} onClick={handleOpen}>publish</Button>
+          : <Button aria-describedby={listing.id} variant="outlined" className={classes.publishBtn} onClick={handleUnpublish}>Unpublish</Button>}
+        <Button className={classes.deleteBtn} onClick={handleDelete}>Delete</Button>
+      </div>
+      <Dialog open={open} onClose={handleClose} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description">
+        <DialogTitle>
+          Choose Available Date Range
+          <IconButton onClick={handleClose} sx={{ position: 'absolute', top: 8, right: 8 }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <LocalizationProvider dateAdapter={DateFnsAdapter}>
+            <DateRangePicker
+              startText="Start-Date"
+              endText="End-Date"
+              value={value}
+              onChange={(newValue) => {
+                setValue(newValue);
+              }}
+              renderInput={(startProps, endProps) => (
+                <React.Fragment>
+                  <TextField {...startProps} />
+                  <Box sx={{ mx: 2 }}>to</Box>
+                  <TextField {...endProps} />
+                </React.Fragment>
+              )}
+            />
+          </LocalizationProvider>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
