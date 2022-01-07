@@ -6,6 +6,7 @@ import SignIn from './views/SignIn';
 import Navbar from './components/Navbar';
 import { StyledEngineProvider } from '@mui/material';
 import MyListings from './views/MyListings';
+import EditListing from './views/EditListing';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/my-listings" element={<MyListings />} />
+          <Route path="/my-listings/:id" element={<EditListing />} />
         </Routes>
       </div>
     </StyledEngineProvider>

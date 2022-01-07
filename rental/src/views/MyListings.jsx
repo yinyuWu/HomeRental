@@ -9,6 +9,7 @@ import { listListings } from '../graphql/queries';
 import { createListing } from '../graphql/mutations';
 import MyListingItem from '../components/MyListingItem';
 import { v4 as uuid } from 'uuid';
+import { useNavigate } from 'react-router-dom';
 
 const useStyles = makeStyles({
   container: {
@@ -345,6 +346,7 @@ function CreateDialog(props) {
 
 export default function MyListings() {
   const classes = useStyles();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [listings, setListings] = useState([]);
 
@@ -374,7 +376,7 @@ export default function MyListings() {
       <div className={classes.list}>
         {listings.length > 0
           ? listings.map(listing => {
-            return (<div key={listing.id}>
+            return (<div key={listing.id} onClick={() => navigate(`/my-listings/${listing.id}`)}>
               <MyListingItem listing={listing} />
             </div>)
           })
