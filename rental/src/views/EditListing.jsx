@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useState } from 'react';
 import { makeStyles, styled } from '@mui/styles';
-import { Box, TextField, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
+import { Box, TextField, MenuItem, FormControl, InputLabel, Select, Checkbox, FormGroup, FormControlLabel, Button } from '@mui/material';
+import { useParams } from 'react-router-dom';
+import { API, graphqlOperation, Storage } from 'aws-amplify';
+import { getListing } from '../graphql/queries';
 
 const useStyles = makeStyles({
   edit: {
@@ -52,7 +55,45 @@ const Input = styled('input')({
 
 export default function EditListing() {
   const classes = useStyles();
+  const params = useParams();
   const [listing, setListing] = useState({});
+  const [amenities, setAmenities] = useState({
+    essentials: false,
+    airConditioning: false,
+    wirelessInternet: false,
+    washer: false,
+    kitchen: false,
+    pool: false,
+  });
+  const [thumbnail, setThumbnail] = useState(null);
+  const [images, setImages] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const listingData = await API.graphql(graphqlOperation(getListing, {
+          id: params.id
+        }));
+        const detail = listingData.data.getListing;
+        const { title, thumbnail, address, price, metadata } = detail;
+        const { street, city, state, postcode, country } = address;
+        const { amenities, bathrooms, bedrooms, type, images } = metadata;
+        const listingItem = { title, thumbnail, price, street, city, state, postcode, country, bathrooms, bedrooms, type };
+
+        setAmenities(amenities);
+        setListing(listingItem);
+        Storage.get(detail.thumbnail).then((thumbnailData) => {
+          setThumbnail(thumbnailData);
+        })
+        if (images) {
+          setImages(images);
+        }
+      } catch (err) {
+        console.log('error', err);
+      }
+    }
+    fetchData();
+  }, [params.id]);
 
   const handleChange = (e) => {
     const name = e.target.name;
@@ -66,6 +107,24 @@ export default function EditListing() {
     const list = listing.bedrooms;
     list[id].numOfBeds = value;
     setListing({ ...listing, bedrooms: list });
+  }
+
+  const handleAmenitiesChange = (e) => {
+    const newAmenities = { ...amenities, [e.target.name]: e.target.checked };
+    setAmenities(newAmenities);
+  }
+
+  const handleThumbnailChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setThumbnail(URL.createObjectURL(e.target.files[0]));
+      setListing({ ...listing, thumbnail: e.target.files[0] });
+    }
+  }
+
+  const handleImageChange = (e) => {
+    if (e.target.files) {
+      console.log('handle images change');
+    }
   }
 
   return (
@@ -217,6 +276,37 @@ export default function EditListing() {
             </Select>
           </FormControl>)
         })}
+        <h4 className={classes.formGroupTitle}>Amenities</h4>
+        <div className={classes.amenities}>
+          <FormGroup>
+            <FormControlLabel control={<Checkbox name="essentials" checked={amenities.essentials} onChange={handleAmenitiesChange} />} label="Essentials" />
+            <FormControlLabel control={<Checkbox name="wirelessInternet" checked={amenities.wirelessInternet} onChange={handleAmenitiesChange} />} label="Wireless Internet" />
+            <FormControlLabel control={<Checkbox name="kitchen" checked={amenities.kitchen} onChange={handleAmenitiesChange} />} label="Kitchen" />
+          </FormGroup>
+          <FormGroup>
+            <FormControlLabel control={<Checkbox name="airConditioning" checked={amenities.airConditioning} onChange={handleAmenitiesChange} />} label="Air Conditioning" />
+            <FormControlLabel control={<Checkbox name="washer" checked={amenities.washer} onChange={handleAmenitiesChange} />} label="Washer" />
+            <FormControlLabel control={<Checkbox name="pool" checked={amenities.pool} onChange={handleAmenitiesChange} />} label="Pool" />
+          </FormGroup>
+        </div>
+        <h4 className={classes.formGroupTitle}>Thumbnail</h4>
+        {thumbnail && <img src={thumbnail} alt="thumbnail" className={classes.image} />}
+        <label htmlFor="contained-button-file">
+          <Input accept="image/*" id="contained-button-file" type="file" onChange={handleThumbnailChange} />
+          <Button className={classes.uploadBtn} variant="contained" component="span">
+            Upload Thumbnail
+          </Button>
+        </label>
+        <h4 className={classes.formGroupTitle}>Property Images</h4>
+        <div className={classes.propertyImages}>
+          {images.length === 0
+            ? <p>You have no property images</p>
+            : images.map((image, index) => {
+              return (<img key={index} src={image} alt={`property-${index}`} className={classes.image} />)
+            })}
+        </div>
+        <input accept="image/*" id="contained-button-file" type="file" multiple onChange={handleImageChange} />
+        <Button variant="contained" type="submit" className={classes.formSubmitBtn}>Save</Button>
       </Box>
     </div>
   )

@@ -356,14 +356,19 @@ export default function MyListings() {
 
   const getMyListing = async () => {
     try {
-      const listingData = await API.graphql(graphqlOperation(listListings));
+      const listingData = await API.graphql(graphqlOperation(listListings, {
+        filter: {
+          owner: {
+            eq: localStorage.getItem('email')
+          }
+        }
+      }));
       const myListings = listingData.data.listListings.items;
       myListings.forEach(async listing => {
         const imageURL = await Storage.get(listing.thumbnail);
         listing.thumbnailURL = imageURL;
       });
       setListings(myListings);
-      console.log('my listings: ', myListings);
     } catch (err) {
       console.log('error: ', err);
     }
