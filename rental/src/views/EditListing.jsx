@@ -5,6 +5,8 @@ import { Box, TextField, MenuItem, FormControl, InputLabel, Select, Checkbox, Fo
 import { useParams } from 'react-router-dom';
 import { API, graphqlOperation, Storage } from 'aws-amplify';
 import { getListing } from '../graphql/queries';
+import { v4 as uuid } from 'uuid';
+import { updateListing } from '../graphql/mutations';
 
 const useStyles = makeStyles({
   edit: {
@@ -67,6 +69,7 @@ export default function EditListing() {
   });
   const [thumbnail, setThumbnail] = useState(null);
   const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,8 +80,8 @@ export default function EditListing() {
         const detail = listingData.data.getListing;
         const { title, thumbnail, address, price, metadata } = detail;
         const { street, city, state, postcode, country } = address;
-        const { amenities, bathrooms, bedrooms, type, images } = metadata;
-        const listingItem = { title, thumbnail, price, street, city, state, postcode, country, bathrooms, bedrooms, type };
+        const { amenities, bathrooms, bedrooms, numOfBedrooms, type, images } = metadata;
+        const listingItem = { title, thumbnail, price, street, city, state, postcode, country, bathrooms, bedrooms, type, numOfBedrooms };
 
         setAmenities(amenities);
         setListing(listingItem);
@@ -123,7 +126,66 @@ export default function EditListing() {
 
   const handleImageChange = (e) => {
     if (e.target.files) {
-      console.log('handle images change');
+      const files = e.target.files;
+      const imgList = [];
+      for (let f of files) {
+        imgList.push(URL.createObjectURL(f));
+      }
+      setImages(imgList);
+    }
+  }
+
+  const saveImages = (index, imagesList, result) => {
+    return new Promise((resolve, reject) => {
+      Storage.put(`${uuid()}.jpeg`, imagesList[index], { contentType: 'image/*' }).then(res => {
+        result.push(res.key);
+        if (index === imagesList.length - 1) {
+          resolve(result);
+        } else {
+          saveImages(index + 1, imagesList, result).then(resolve);
+        }
+      }).catch(err => reject(err));
+    })
+  }
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const { title, street, city, state, postcode, country, bathrooms, type, price, numOfBedrooms, bedrooms, thumbnail } = listing;
+    // calculate number of beds
+    let totalBeds = 0;
+    for (const bedroom of bedrooms) {
+      totalBeds += bedroom.numOfBeds;
+    }
+    const address = { street, city, state, postcode, country };
+    let data = {};
+    // save images into s3 bucket
+    if (images.length > 0) {
+      saveImages(0, images, []).then(async result => {
+        const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds, images: result };
+        data = { title, address, price: parseInt(price), metadata, thumbnail, owner: localStorage.getItem('email') };
+        data.id = params.id;
+        console.log(data);
+        try {
+          const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
+          console.log('response: ', response);
+        } catch (err) {
+          console.log(err);
+        }
+        setLoading(false);
+      });
+    } else {
+      const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds };
+      data = { title, address, price: parseInt(price), metadata, thumbnail, owner: localStorage.getItem('email') };
+      data.id = params.id;
+      console.log(data);
+      try {
+        const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
+        console.log('response: ', response);
+      } catch (err) {
+        console.log(err);
+      }
+      setLoading(false);
     }
   }
 
@@ -134,7 +196,7 @@ export default function EditListing() {
         flexDirection: 'column',
         p: 1,
         m: 1
-      }}>
+      }} onSubmit={handleEdit}>
         <h2 className={classes.editTitle}>Edit My Property</h2>
         <h4 className={classes.formGroupTitle}>Listing Title</h4>
         <TextField
@@ -306,7 +368,7 @@ export default function EditListing() {
             })}
         </div>
         <input accept="image/*" id="contained-button-file" type="file" multiple onChange={handleImageChange} />
-        <Button variant="contained" type="submit" className={classes.formSubmitBtn}>Save</Button>
+        <Button variant="contained" type="submit" className={classes.formSubmitBtn} disabled={loading}>{loading ? 'Saving Changes...' : 'Save'}</Button>
       </Box>
     </div>
   )
