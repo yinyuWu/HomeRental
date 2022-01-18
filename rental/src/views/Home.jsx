@@ -7,6 +7,8 @@ import { SearchRounded } from '@mui/icons-material';
 import { DateRangePicker, LocalizationProvider } from '@mui/lab';
 import DateFnsAdapter from '@mui/lab/AdapterDateFns';
 import ListingItem from '../components/ListingItem';
+import { API, graphqlOperation } from 'aws-amplify';
+import { listListings } from '../graphql/queries';
 
 const useStyles = makeStyles({
   home: {
@@ -90,6 +92,15 @@ export default function Home() {
   const handleReset = () => {
     setFilteredListings(listings);
     setSearch({});
+  }
+
+  const getAllListings = () => {
+    try {
+      const listingData = API.graphql(graphqlOperation(listListings));
+      const listings = listingData.data.listListings.items;
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   return (

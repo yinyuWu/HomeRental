@@ -133,10 +133,8 @@ function CreateDialog(props) {
     }
     const { key } = await Storage.put(`${uuid()}.jpeg`, thumbnail, { contentType: 'image/*' } );
     const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email'), published: false };
-    console.log(data);
     try {
-      const response = await API.graphql(graphqlOperation(createListing, { input: data }));
-      console.log('response: ', response);
+      await API.graphql(graphqlOperation(createListing, { input: data }));
     } catch (err) {
       console.log(' error: ', err.errors[0].message);
     }
@@ -382,7 +380,7 @@ export default function MyListings() {
         {listings.length > 0
           ? listings.map(listing => {
             return (<div key={listing.id} onClick={() => navigate(`/my-listings/${listing.id}`)}>
-              <MyListingItem listing={listing} />
+              <MyListingItem listing={listing} getMyListing={getMyListing} />
             </div>)
           })
           : <p>No Listings</p>}

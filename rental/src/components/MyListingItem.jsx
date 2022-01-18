@@ -1,12 +1,15 @@
 import React from 'react';
 import { useState } from 'react';
 import { makeStyles } from '@mui/styles';
-import { Box, Button, Card, CardContent, CardMedia, Dialog, DialogContent, DialogTitle, IconButton, Rating, TextField, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, CardMedia, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Rating, TextField, Typography } from '@mui/material';
 import { Close, Star } from '@mui/icons-material';
 import { LocalizationProvider, DateRangePicker } from '@mui/lab';
 import DateFnsAdapter from '@mui/lab/AdapterDateFns';
 import { Link } from 'react-router-dom';
 import placeholder from '../images/placeholder.png';
+import { API, graphqlOperation } from 'aws-amplify';
+import { updateListing } from '../graphql/mutations';
+import { getListing } from '../graphql/queries';
 
 const useStyles = makeStyles({
   card: {
@@ -88,7 +91,7 @@ const useStyles = makeStyles({
 export default function MyListingItem(props) {
   const classes = useStyles();
   const propertyTypes = ['Apartment', 'House', 'Loft'];
-  const { listing } = props;
+  const { listing, getMyListing } = props;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState([null, null]);
 
@@ -102,7 +105,28 @@ export default function MyListingItem(props) {
     setOpen(false);
   }
 
-  const handleUnpublish = () => {
+  const handlePublish = async (e) => {
+    e.stopPropagation();
+    const listingData = await API.graphql(graphqlOperation(getListing, {
+      id: listing.id
+    }));
+    const detail = listingData.data.getListing;
+    delete detail.createdAt;
+    delete detail.updatedAt;
+    detail.availability = [...value];
+    detail.published = true;
+    try {
+      const response = await API.graphql(graphqlOperation(updateListing, { input: detail }));
+      setOpen(false);
+      getMyListing();
+      console.log(response);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  const handleUnpublish = (e) => {
+    e.stopPropagation();
     console.log('unpublish');
   }
 
@@ -138,7 +162,7 @@ export default function MyListingItem(props) {
           : <Button aria-describedby={listing.id} variant="outlined" className={classes.publishBtn} onClick={handleUnpublish}>Unpublish</Button>}
         <Button className={classes.deleteBtn} onClick={handleDelete}>Delete</Button>
       </div>
-      <Dialog open={open} onClose={handleClose} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description">
+      <Dialog open={open} onClose={handleClose} aria-labelledby="alert-dialog-title" aria-describedby="alert-dialog-description" onClick={(e) => e.stopPropagation()}>
         <DialogTitle>
           Choose Available Date Range
           <IconButton onClick={handleClose} sx={{ position: 'absolute', top: 8, right: 8 }}>
@@ -164,6 +188,7 @@ export default function MyListingItem(props) {
             />
           </LocalizationProvider>
         </DialogContent>
+        <DialogActions><Button onClick={handlePublish}>Publish</Button></DialogActions>
       </Dialog>
     </Card>
   )
