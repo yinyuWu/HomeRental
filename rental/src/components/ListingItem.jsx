@@ -40,7 +40,7 @@ export default function ListingItem (props) {
 
   return (
     <Card variant="outlined" sx={{ maxWidth: 345 }} className={classes.card}>
-      <CardMedia component="img" image={listing.thumbnail || placeholder} alt="placeholder" height="140" className={classes.cardImage} />
+      <CardMedia component="img" image={listing.thumbnailURL || placeholder} alt="placeholder" height="140" className={classes.cardImage} />
       <CardContent className={classes.cardContent}>
         <div>
           <Typography gutterBottom variant="body2" className={classes.info}>
@@ -56,7 +56,7 @@ export default function ListingItem (props) {
           </Typography>
           <Typography variant="body2" className={classes.review}>
             {listing.reviews && listing.reviews.length > 0 && <Rating readOnly name="feedback" value={listing.rating} emptyIcon={<Star style={{ opacity: 0.55 }} fontSize="inherit" />} />}
-            <span>({listing.reviews.length} reviews)</span>
+            <span>({listing.reviews ? listing.reviews.length : 0} reviews)</span>
           </Typography>
         </div>
       </CardContent>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { makeStyles } from '@mui/styles';
 import { Box, InputAdornment, TextField, Typography, FormControl, InputLabel, Select, MenuItem, Button, useMediaQuery } from '@mui/material';
 import { useState } from 'react';
@@ -7,7 +7,7 @@ import { SearchRounded } from '@mui/icons-material';
 import { DateRangePicker, LocalizationProvider } from '@mui/lab';
 import DateFnsAdapter from '@mui/lab/AdapterDateFns';
 import ListingItem from '../components/ListingItem';
-import { API, graphqlOperation } from 'aws-amplify';
+import { API, graphqlOperation, Storage } from 'aws-amplify';
 import { listListings } from '../graphql/queries';
 
 const useStyles = makeStyles({
@@ -81,7 +81,10 @@ export default function Home() {
   const [search, setSearch] = useState({});
   const [value, setValue] = useState([null, null]);
   const [listings, setListings] = useState([]);
-  const [filteredListings, setFilteredListings] = useState([]);
+
+  useEffect(() => {
+    getAllListings();
+  }, []);
 
   const handleChange = (e) => {
     const name = e.target.name;
@@ -90,14 +93,34 @@ export default function Home() {
   }
 
   const handleReset = () => {
-    setFilteredListings(listings);
     setSearch({});
   }
 
-  const getAllListings = () => {
+  const handleSearch = () => {
+    console.log('search');
+  }
+
+  const getImages = (index, list, res) => {
+    return new Promise((resolve, reject) => {
+      Storage.get(list[index].thumbnail).then((imageURL) => {
+        list[index].thumbnailURL = imageURL;
+        res.push(list[index]);
+        if (index === list.length - 1) {
+          resolve(res);
+        } else {
+          getImages(index + 1, list, res).then(resolve)
+        }
+      });
+    })
+  }
+
+  const getAllListings = async () => {
     try {
-      const listingData = API.graphql(graphqlOperation(listListings));
+      const listingData = await API.graphql(graphqlOperation(listListings));
       const listings = listingData.data.listListings.items;
+      getImages(0, listings, []).then(data => {
+        setListings(data);
+      })
     } catch (err) {
       console.log(err);
     }
@@ -105,7 +128,7 @@ export default function Home() {
 
   return (
     <div className={classes.home}>
-      <Box className={classes.filter} component="form">
+      <Box className={classes.filter} component="form" onSubmit={handleSearch}>
         <div className={classes.filterTop}>
           <TextField name="text" value={search.text || ''} onChange={handleChange} label="Search" variant="outlined" inputProps={{
             startadornment: (
@@ -167,7 +190,7 @@ export default function Home() {
         </div>
       </Box>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', mt: 5, columnGap: 2, rowGap: 3 }}>
-        {filteredListings.map(listing => {
+        {listings.map(listing => {
           return (<Box sx={{ justifySelf: mobile && 'center', width: mobile ? '300px' : 'auto' }} gridColumn={mobile ? 'span 3' : 'span 1'} key={listing.id} onClick={() => navigate(`/listings/${listing.id}`)}><ListingItem listing={listing} /></Box>)
         })}
       </Box>

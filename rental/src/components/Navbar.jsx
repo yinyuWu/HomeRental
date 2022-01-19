@@ -111,7 +111,7 @@ export default function Navbar(props) {
     <AppBar>
       <Toolbar className={classes.nav}>
         <Typography variant='h6' component='div' sx={{ color: '#FF5A5F', fontSize: '1.8rem', fontWeight: 700 }}>
-          AirBrB
+          AirRent
         </Typography>
         {props.user
           ? <div className={classes.links}>
