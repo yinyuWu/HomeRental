@@ -69,6 +69,8 @@ export default function EditListing() {
   });
   const [thumbnail, setThumbnail] = useState(null);
   const [images, setImages] = useState([]);
+  const [updateImages, setUpdateImages] = useState(false);
+  const [updateThumb, setUpdateThumb] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -89,7 +91,9 @@ export default function EditListing() {
           setThumbnail(thumbnailData);
         })
         if (images) {
-          setImages(images);
+          getImages(0, images, []).then(data => {
+            setImages(data);
+          });
         }
       } catch (err) {
         console.log('error', err);
@@ -97,6 +101,20 @@ export default function EditListing() {
     }
     fetchData();
   }, [params.id]);
+
+  const getImages = (index, list, res) => {
+    return new Promise((resolve, reject) => {
+      console.log(list[index]);
+      Storage.get(list[index]).then((imageURL) => {
+        res.push(imageURL);
+        if (index === list.length - 1) {
+          resolve(res);
+        } else {
+          getImages(index + 1, list, res).then(resolve)
+        }
+      });
+    })
+  }
 
   const handleChange = (e) => {
     const name = e.target.name;
@@ -121,6 +139,7 @@ export default function EditListing() {
     if (e.target.files && e.target.files[0]) {
       setThumbnail(URL.createObjectURL(e.target.files[0]));
       setListing({ ...listing, thumbnail: e.target.files[0] });
+      setUpdateThumb(true);
     }
   }
 
@@ -132,6 +151,8 @@ export default function EditListing() {
         imgList.push(URL.createObjectURL(f));
       }
       setImages(imgList);
+      setListing({ ...listing, images: e.target.files });
+      setUpdateImages(true);
     }
   }
 
@@ -151,7 +172,7 @@ export default function EditListing() {
   const handleEdit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { title, street, city, state, postcode, country, bathrooms, type, price, numOfBedrooms, bedrooms, thumbnail } = listing;
+    const { title, street, city, state, postcode, country, bathrooms, type, price, numOfBedrooms, bedrooms } = listing;
     // calculate number of beds
     let totalBeds = 0;
     for (const bedroom of bedrooms) {
@@ -160,33 +181,27 @@ export default function EditListing() {
     const address = { street, city, state, postcode, country };
     let data = {};
     // save images into s3 bucket
-    if (images.length > 0) {
-      saveImages(0, images, []).then(async result => {
-        const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds, images: result };
-        data = { title, address, price: parseInt(price), metadata, thumbnail, owner: localStorage.getItem('email') };
-        data.id = params.id;
-        console.log(data);
-        try {
-          const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
-          console.log('response: ', response);
-        } catch (err) {
-          console.log(err);
-        }
-        setLoading(false);
-      });
-    } else {
-      const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds };
-      data = { title, address, price: parseInt(price), metadata, thumbnail, owner: localStorage.getItem('email') };
-      data.id = params.id;
-      console.log(data);
-      try {
-        const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
-        console.log('response: ', response);
-      } catch (err) {
-        console.log(err);
-      }
-      setLoading(false);
+    if (updateImages) {
+      const resultImages = await saveImages(0, listing.images, []);
+      listing.images = resultImages;
     }
+    if (updateThumb) {
+      const resultThumbnail = await Storage.put(`${uuid()}.jpeg`, listing.thumbnail);
+      listing.thumbnail = resultThumbnail.key;
+    }
+    const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds, images: listing.images };
+    data = { title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner: localStorage.getItem('email') };
+    data.id = params.id;
+    // console.log(data);
+    try {
+      const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
+      console.log('response: ', response);
+    } catch (err) {
+      console.log(err);
+    }
+    setLoading(false);
+    setUpdateImages(false);
+    setUpdateThumb(false);
   }
 
   return (

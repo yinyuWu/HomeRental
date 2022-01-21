@@ -116,11 +116,19 @@ export default function Home() {
 
   const getAllListings = async () => {
     try {
-      const listingData = await API.graphql(graphqlOperation(listListings));
+      const listingData = await API.graphql(graphqlOperation(listListings, {
+        filter: {
+          published: {
+            eq: true
+          }
+        }
+      }));
       const listings = listingData.data.listListings.items;
-      getImages(0, listings, []).then(data => {
-        setListings(data);
-      })
+      if (listings.length > 0) {
+        getImages(0, listings, []).then(data => {
+          setListings(data);
+        });
+      }
     } catch (err) {
       console.log(err);
     }

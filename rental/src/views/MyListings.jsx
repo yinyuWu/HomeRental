@@ -352,6 +352,20 @@ export default function MyListings() {
     getMyListing();
   }, []);
 
+  const getImages = (index, list, res) => {
+    return new Promise((resolve, reject) => {
+      Storage.get(list[index].thumbnail).then((imageURL) => {
+        list[index].thumbnailURL = imageURL;
+        res.push(list[index]);
+        if (index === list.length - 1) {
+          resolve(res);
+        } else {
+          getImages(index + 1, list, res).then(resolve)
+        }
+      });
+    })
+  }
+
   const getMyListing = async () => {
     try {
       const listingData = await API.graphql(graphqlOperation(listListings, {
@@ -362,11 +376,11 @@ export default function MyListings() {
         }
       }));
       const myListings = listingData.data.listListings.items;
-      myListings.forEach(async listing => {
-        const imageURL = await Storage.get(listing.thumbnail);
-        listing.thumbnailURL = imageURL;
-      });
-      setListings(myListings);
+      if (myListings.length > 0) {
+        getImages(0, myListings, []).then(data => {
+          setListings(data);
+        });
+      }
     } catch (err) {
       console.log('error: ', err);
     }

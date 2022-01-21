@@ -5,10 +5,13 @@ import { Typography, Rating, Box, TextField, Button, Dialog, DialogTitle, Dialog
 import { LocalizationProvider, DateRangePicker } from '@mui/lab';
 import DateFnsAdapter from '@mui/lab/AdapterDateFns';
 import ReviewItem from '../components/ReviewItem';
+import { useParams } from 'react-router-dom';
+import { API, graphqlOperation, Storage } from 'aws-amplify';
+import { getListing } from '../graphql/queries'
 
 const useStyles = makeStyles({
   detail: {
-    padding: '3rem',
+    padding: '5rem',
     display: 'flex'
   },
   mobileDetail: {
@@ -107,8 +110,9 @@ const useStyles = makeStyles({
   }
 })
 
-export default function ListingDetail (props) {
+export default function ListingDetail(props) {
   const classes = useStyles();
+  const params = useParams();
   const mobile = useMediaQuery('(max-width: 800px)');
   const propertyTypes = ['Apartment', 'House', 'Loft'];
 
@@ -121,8 +125,78 @@ export default function ListingDetail (props) {
   const [review, setReview] = useState({ rating: 3, user: localStorage.getItem('user') });
 
   useEffect(() => {
-    console.log('fetch listing detail');
-  }, [])
+    if (localStorage.getItem('email')) setLoggedin(true);
+    fetchData();
+  }, []);
+
+  const getImages = (index, list, res) => {
+    return new Promise((resolve, reject) => {
+      Storage.get(list[index]).then((imageURL) => {
+        res.push(imageURL);
+        if (index === list.length - 1) {
+          resolve(res);
+        } else {
+          getImages(index + 1, list, res).then(resolve)
+        }
+      });
+    })
+  }
+
+  const fetchData = async () => {
+    try {
+      console.log(params.id);
+      const listingData = await API.graphql(graphqlOperation(getListing, {
+        id: params.id
+      }));
+      const detail = listingData.data.getListing;
+      const { title, address, price, metadata, reviews, availability, owner } = detail;
+      const { street, city, state, postcode, country } = address;
+      const { amenities, bathrooms, bedrooms, type, images, totalBeds } = metadata;
+      const listingItem = { title, price, street, city, state, postcode, country, bathrooms, bedrooms, type, totalBeds, reviews, availability, owner };
+      if (reviews && reviews.length > 0) {
+        let total = 0;
+        reviews.forEach(r => {
+          total += r.rating;
+        })
+        listingItem.rating = Math.round(total / reviews.length);
+      }
+      const amenitiesText = {
+        airConditioning: 'Air Conditioning',
+        essentials: 'Essentials',
+        kitchen: 'Kitchen',
+        pool: 'Pool',
+        washer: 'Washer',
+        wirelessInternet: 'Wireless Internet'
+      };
+      const amenitiesIcons = {
+        airConditioning: <Air />,
+        essentials: <DryCleaning />,
+        kitchen: <Kitchen />,
+        pool: <Pool />,
+        washer: <LocalLaundryService />,
+        wirelessInternet: <Wifi />
+      }
+      const amenitiesList = [];
+      Object.keys(amenities).forEach(amenity => {
+        amenities[amenity] && amenitiesList.push({
+          text: amenitiesText[amenity],
+          icon: amenitiesIcons[amenity]
+        });
+      });
+      listingItem.amenities = amenitiesList;
+      if (images) {
+        getImages(0, images, []).then(data => {
+          console.log(data);
+          listingItem.images = data;
+          setListing(listingItem);
+        })
+      } else {
+        setListing(listingItem);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
   const handleDateChange = (newValue) => {
     setValue(newValue);
@@ -186,8 +260,8 @@ export default function ListingDetail (props) {
         <div className={classes.propertyImages}>
           {listing.images && listing.images.length > 0
             ? listing.images.map((image, index) => {
-                return (<img key={index} src={image} alt={`image-${index}`} className={classes.image} />)
-              })
+              return (<img key={index} src={image} alt={`image-${index}`} className={classes.image} />)
+            })
             : <p>No property images</p>}
         </div>
         <hr className={classes.line} />
@@ -199,7 +273,7 @@ export default function ListingDetail (props) {
         </div>
         {loggedin && booking && <Box component="form" className={classes.reviewForm} onSubmit={handleSendReview}>
           <TextField multiline fullWidth rows={4} label="Your Review" onChange={handleReviewTextChange} value={review.text} />
-          <Rating name="rating" value={review.rating} emptyIcon={<Star style={{ opacity: 0.55 }} fontSize="inherit" />} onChange={handleReviewRatingChange}/>
+          <Rating name="rating" value={review.rating} emptyIcon={<Star style={{ opacity: 0.55 }} fontSize="inherit" />} onChange={handleReviewRatingChange} />
           <Button variant="contained" className={classes.reviewBtn} type="submit">Save Review</Button>
         </Box>}
       </div>
@@ -207,7 +281,7 @@ export default function ListingDetail (props) {
         <Typography variant="h6" className={classes.price}>
           ${listing.price}/night
         </Typography>
-        {loggedin && booking && <Chip label={booking.status} color="primary" size="small"/>}
+        {loggedin && booking && <Chip label={booking.status} color="primary" size="small" />}
         {listing.rating && <Typography variant="body2" className={classes.review}>
           <Rating readOnly name="feedback" value={listing.rating} emptyIcon={<Star style={{ opacity: 0.55 }} fontSize="inherit" />} />
           <span>({listing.reviews && listing.reviews.length})</span>
@@ -238,8 +312,8 @@ export default function ListingDetail (props) {
           <Typography>Total fee: ${fee}</Typography>
           {loggedin
             ? listing.owner !== localStorage.getItem('user')
-                ? <Button variant="contained" className={classes.bookBtn} type="submit">Book</Button>
-                : <Button variant="contained" className={classes.bookBtn} disabled>You cannot book your own   property </Button>
+              ? <Button variant="contained" className={classes.bookBtn} type="submit">Book</Button>
+              : <Button variant="contained" className={classes.bookBtn} disabled>You cannot book your own   property </Button>
             : <Button variant="contained" className={classes.bookBtn} disabled>You have to log in to book </Button>}
         </Box>
       </div>
