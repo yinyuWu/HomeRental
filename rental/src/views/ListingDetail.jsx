@@ -7,7 +7,8 @@ import DateFnsAdapter from '@mui/lab/AdapterDateFns';
 import ReviewItem from '../components/ReviewItem';
 import { useParams } from 'react-router-dom';
 import { API, graphqlOperation, Storage } from 'aws-amplify';
-import { getListing } from '../graphql/queries'
+import { getListing, listBookings } from '../graphql/queries'
+import { createBooking, updateListing } from '../graphql/mutations';
 
 const useStyles = makeStyles({
   detail: {
@@ -123,9 +124,12 @@ export default function ListingDetail(props) {
   const [loggedin, setLoggedin] = useState(false);
   const [booking, setBooking] = useState(null);
   const [review, setReview] = useState({ rating: 3, user: localStorage.getItem('user') });
+  const [bookLoading, setBookLoading] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('email')) setLoggedin(true);
+    const email = localStorage.getItem('email');
+    if (email) setLoggedin(true);
     fetchData();
   }, []);
 
@@ -144,7 +148,6 @@ export default function ListingDetail(props) {
 
   const fetchData = async () => {
     try {
-      console.log(params.id);
       const listingData = await API.graphql(graphqlOperation(getListing, {
         id: params.id
       }));
@@ -183,15 +186,31 @@ export default function ListingDetail(props) {
           icon: amenitiesIcons[amenity]
         });
       });
-      listingItem.amenities = amenitiesList;
+      listingItem.amenitiesObjects = amenitiesList;
+      listingItem.amenities = amenities;
       if (images) {
         getImages(0, images, []).then(data => {
-          console.log(data);
           listingItem.images = data;
+          listingItem.imagesURL = images;
           setListing(listingItem);
         })
       } else {
         setListing(listingItem);
+      }
+      // fetch booking data
+      if (localStorage.getItem('email')) {
+        const bookingData = await API.graphql(graphqlOperation(listBookings, {
+          filter: {
+            listingId: {
+              eq: params.id
+            },
+            owner: {
+              eq: localStorage.getItem('email')
+            }
+          }
+        }));
+        const bookings = bookingData.data.listBookings.items;
+        if (bookings.length > 0) setBooking(bookings[0]);
       }
     } catch (err) {
       console.log(err);
@@ -217,25 +236,58 @@ export default function ListingDetail(props) {
     setReview({ ...review, rating });
   }
 
-  const handleSendReview = (e) => {
+  const handleSendReview = async (e) => {
     e.preventDefault();
-    console.log('send review');
+    setReviewLoading(true);
+    const { title, street, city, state, postcode, country, bathrooms, type, price, bedrooms, totalBeds, amenities, reviews } = listing;
+    // updated listing data
+    const address = { street, city, state, postcode, country };
+    const metadata = { bathrooms, type, numOfBedrooms: bedrooms.length, bedrooms, amenities, totalBeds, images: listing.imagesURL };
+    // update reviews
+    let updateReviews;
+    const newReview = { ...review };
+    if (!newReview.text) newReview.text = '';
+    if (reviews) {
+      updateReviews = reviews;
+      updateReviews.push(newReview);
+    } else {
+      updateReviews = [newReview];
+    }
+    const data = { id: params.id, title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner: localStorage.getItem('email'), reviews: updateReviews };
+    // console.log('send review', data);
+    try {
+      const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
+      console.log('response: ', response);
+    } catch (err) {
+      console.log(err);
+    }
+    setReviewLoading(false);
   }
 
   const handleClose = () => {
     setOpen(false);
   }
 
-  const handleBook = (e) => {
+  const handleBook = async (e) => {
     e.preventDefault();
+    setBookLoading(true);
     if (!value[0] || !value[1]) {
       console.log('Invalid Date');
+      setBookLoading(false);
       return;
     }
-    // const dateRange = { start: value[0], end: value[1] };
-    // const data = { dateRange, totalPrice: fee };
-    // const id = props.match.params.id;
-    console.log('book')
+    const dateRange = { start: value[0], end: value[1] };
+    const listingId = params.id;
+    const data = { owner: localStorage.getItem('email'), dateRange, totalPrice: fee, listingId, status: 'pending' };
+    try {
+      const response = await API.graphql(graphqlOperation(createBooking, { input: data }));
+      setOpen(true);
+      fetchData();
+      console.log(response);
+    } catch (err) {
+      console.log(err);
+    }
+    setBookLoading(false);
   }
 
   return (
@@ -251,7 +303,7 @@ export default function ListingDetail(props) {
           <span className={classes.info}><BedroomChildRounded />{listing.totalBeds} Beds</span>
         </div>
         <div className={classes.amenities}>
-          {listing.amenities && listing.amenities.map(amenity => {
+          {listing.amenitiesObjects && listing.amenitiesObjects.map(amenity => {
             return (<span key={amenity.text} className={classes.info}>{amenity.icon} {amenity.text} </span>)
           })}
         </div>
@@ -274,7 +326,7 @@ export default function ListingDetail(props) {
         {loggedin && booking && <Box component="form" className={classes.reviewForm} onSubmit={handleSendReview}>
           <TextField multiline fullWidth rows={4} label="Your Review" onChange={handleReviewTextChange} value={review.text} />
           <Rating name="rating" value={review.rating} emptyIcon={<Star style={{ opacity: 0.55 }} fontSize="inherit" />} onChange={handleReviewRatingChange} />
-          <Button variant="contained" className={classes.reviewBtn} type="submit">Save Review</Button>
+          <Button variant="contained" className={classes.reviewBtn} type="submit" disabled={reviewLoading}>{reviewLoading ? 'saving review...' : 'Save Review'}</Button>
         </Box>}
       </div>
       <div className={mobile ? classes.mobileBooking : classes.booking}>
@@ -311,8 +363,8 @@ export default function ListingDetail(props) {
           </div>
           <Typography>Total fee: ${fee}</Typography>
           {loggedin
-            ? listing.owner !== localStorage.getItem('user')
-              ? <Button variant="contained" className={classes.bookBtn} type="submit">Book</Button>
+            ? listing.owner !== localStorage.getItem('email')
+              ? <Button variant="contained" className={classes.bookBtn} type="submit" disabled={bookLoading}>{bookLoading ? 'Booking...' : 'Book'}</Button>
               : <Button variant="contained" className={classes.bookBtn} disabled>You cannot book your own   property </Button>
             : <Button variant="contained" className={classes.bookBtn} disabled>You have to log in to book </Button>}
         </Box>
