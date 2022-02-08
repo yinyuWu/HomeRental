@@ -8,6 +8,7 @@ import { StyledEngineProvider } from '@mui/material';
 import MyListings from './views/MyListings';
 import EditListing from './views/EditListing';
 import ListingDetail from './views/ListingDetail';
+import Booking from './views/Booking';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/my-listings" element={<MyListings />} />
           <Route path="/my-listings/:id" element={<EditListing />} />
           <Route path="/listings/:id" element={<ListingDetail />} />
+          <Route path="/bookings/:id" element={<Booking />} />
         </Routes>
       </div>
     </StyledEngineProvider>

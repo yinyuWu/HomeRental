@@ -155,7 +155,7 @@ export default function MyListingItem(props) {
           <span>({listing.reviews.length} reviews)</span>
           </Typography>}
       </CardContent>
-      <Link className={classes.bookingsLink} to="#" onClick={(e) => e.stopPropagation()}>view bookings</Link>
+      <Link className={classes.bookingsLink} to={`/bookings/${listing.id}`} onClick={(e) => e.stopPropagation()}>view bookings</Link>
       <div className={classes.btns}>
         {!listing.published
           ? <Button aria-describedby={listing.id} variant="outlined" className={classes.publishBtn} onClick={handleOpen}>publish</Button>
