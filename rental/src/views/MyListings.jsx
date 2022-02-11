@@ -1,7 +1,7 @@
 import React from 'react';
 import AlertDialog from '../components/AlertDialog';
 import { makeStyles } from '@mui/styles';
-import { Box, Button, Dialog, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Checkbox, FormGroup, FormControlLabel, Input, IconButton} from '@mui/material';
+import { Box, Button, Dialog, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Checkbox, FormGroup, FormControlLabel, Input, IconButton, CircularProgress } from '@mui/material';
 import { useState, useEffect } from 'react';
 import Close from '@mui/icons-material/Close';
 import { API, graphqlOperation, Storage } from 'aws-amplify';
@@ -62,6 +62,10 @@ const useStyles = makeStyles({
   amenities: {
     display: 'flex',
     justifyContent: 'space-between'
+  },
+  loading: {
+    display: 'block',
+    margin: '50vh auto'
   }
 });
 
@@ -131,13 +135,15 @@ function CreateDialog(props) {
       setAlert(true);
       return;
     }
-    const { key } = await Storage.put(`${uuid()}.jpeg`, thumbnail, { contentType: 'image/*' } );
+    const { key } = await Storage.put(`${uuid()}.jpeg`, thumbnail, { contentType: 'image/*' });
     const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email'), published: false };
     try {
       await API.graphql(graphqlOperation(createListing, { input: data }));
     } catch (err) {
       console.log(' error: ', err.errors[0].message);
     }
+    setListing({});
+    setImage(null);
     setLoading(false);
     onClose();
     getMyListing();
@@ -347,6 +353,7 @@ export default function MyListings() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getMyListing();
@@ -367,6 +374,7 @@ export default function MyListings() {
   }
 
   const getMyListing = async () => {
+    setLoading(true);
     try {
       const listingData = await API.graphql(graphqlOperation(listListings, {
         filter: {
@@ -379,27 +387,32 @@ export default function MyListings() {
       if (myListings.length > 0) {
         getImages(0, myListings, []).then(data => {
           setListings(data);
+          setLoading(false);
         });
       }
     } catch (err) {
       console.log('error: ', err);
+      setLoading(false);
     }
   }
 
   return (
     <div className={classes.container}>
-      <h3>My Listings</h3>
-      <Button className={classes.createBtn} onClick={() => setOpen(true)}>Create a New Listing</Button>
-      <div className={classes.list}>
-        {listings.length > 0
-          ? listings.map(listing => {
-            return (<div key={listing.id} onClick={() => navigate(`/my-listings/${listing.id}`)}>
-              <MyListingItem listing={listing} getMyListing={getMyListing} />
-            </div>)
-          })
-          : <p>No Listings</p>}
-      </div>
-      <CreateDialog open={open} onClose={() => setOpen(false)} getMyListing={getMyListing}/>
+      {loading ? <CircularProgress className={classes.loading} /> :
+        <div>
+          <h3>My Listings</h3>
+          <Button className={classes.createBtn} onClick={() => setOpen(true)}>Create a New Listing</Button>
+          <div className={classes.list}>
+            {listings.length > 0
+              ? listings.map(listing => {
+                return (<div key={listing.id} onClick={() => navigate(`/my-listings/${listing.id}`)}>
+                  <MyListingItem listing={listing} getMyListing={getMyListing} />
+                </div>)
+              })
+              : <p>No Listings</p>}
+          </div>
+          <CreateDialog open={open} onClose={() => setOpen(false)} getMyListing={getMyListing} />
+        </div>}
     </div>
   )
 }

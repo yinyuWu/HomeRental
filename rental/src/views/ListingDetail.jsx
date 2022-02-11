@@ -81,7 +81,7 @@ const useStyles = makeStyles({
   bookBtn: {
     background: '#FF5A5F',
     color: '#fff',
-    marginTop: '50px',
+    marginTop: '1.5rem',
     '&:hover': {
       background: '#FF5A5F',
       color: '#fff',
@@ -123,7 +123,7 @@ export default function ListingDetail(props) {
   const [open, setOpen] = useState(false);
   const [loggedin, setLoggedin] = useState(false);
   const [booking, setBooking] = useState(null);
-  const [review, setReview] = useState({ rating: 3, user: localStorage.getItem('user') });
+  const [review, setReview] = useState({ rating: 3, user: localStorage.getItem('email') });
   const [bookLoading, setBookLoading] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
 
@@ -239,7 +239,7 @@ export default function ListingDetail(props) {
   const handleSendReview = async (e) => {
     e.preventDefault();
     setReviewLoading(true);
-    const { title, street, city, state, postcode, country, bathrooms, type, price, bedrooms, totalBeds, amenities, reviews } = listing;
+    const { title, street, city, state, postcode, country, bathrooms, type, price, bedrooms, totalBeds, amenities, reviews, owner } = listing;
     // updated listing data
     const address = { street, city, state, postcode, country };
     const metadata = { bathrooms, type, numOfBedrooms: bedrooms.length, bedrooms, amenities, totalBeds, images: listing.imagesURL };
@@ -253,15 +253,17 @@ export default function ListingDetail(props) {
     } else {
       updateReviews = [newReview];
     }
-    const data = { id: params.id, title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner: localStorage.getItem('email'), reviews: updateReviews };
-    // console.log('send review', data);
+    const data = { id: params.id, title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner, reviews: updateReviews };
+    console.log('send review', data);
     try {
       const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
       console.log('response: ', response);
     } catch (err) {
       console.log(err);
+      
     }
     setReviewLoading(false);
+    setReview({ ...review, rating: 3, text: '' });
   }
 
   const handleClose = () => {

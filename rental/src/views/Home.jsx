@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { makeStyles } from '@mui/styles';
-import { Box, InputAdornment, TextField, Typography, FormControl, InputLabel, Select, MenuItem, Button, useMediaQuery } from '@mui/material';
+import { Box, InputAdornment, TextField, Typography, FormControl, InputLabel, Select, MenuItem, Button, useMediaQuery, CircularProgress } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchRounded } from '@mui/icons-material';
@@ -71,6 +71,10 @@ const useStyles = makeStyles({
     '&:hover': {
       backgroundColor: '#008489'
     }
+  },
+  loading: {
+    display: 'block',
+    margin: '2rem auto'
   }
 });
 
@@ -81,6 +85,7 @@ export default function Home() {
   const [search, setSearch] = useState({});
   const [value, setValue] = useState([null, null]);
   const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getAllListings();
@@ -96,14 +101,45 @@ export default function Home() {
     setSearch({});
   }
 
-  const handleSearch = () => {
-    console.log('search');
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    console.log('search', search);
+    try {
+      const listingData = await API.graphql(graphqlOperation(listListings, {
+        filter: {
+          published: {
+            eq: true
+          },
+          price: {
+            ge: search.minPrice || 0,
+            le: search.maxPrice || Math.pow(2, 20)
+          },
+          metadata: {
+            numOfBedrooms: {
+              ge: search.minBeds || 0,
+              le: search.maxBeds || Math.pow(2, 20),
+            }
+          }
+        }
+      }));
+      console.log(listingData);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   const getImages = (index, list, res) => {
     return new Promise((resolve, reject) => {
       Storage.get(list[index].thumbnail).then((imageURL) => {
         list[index].thumbnailURL = imageURL;
+        if (list[index].reviews && list[index].reviews.length > 0) {
+          // calculate average rating
+          let total = 0;
+          list[index].reviews.forEach(d => {
+            total += d.rating;
+          })
+          list[index].rating = Math.round(total / list[index].reviews.length);
+        }
         res.push(list[index]);
         if (index === list.length - 1) {
           resolve(res);
@@ -115,6 +151,7 @@ export default function Home() {
   }
 
   const getAllListings = async () => {
+    setLoading(true);
     try {
       const listingData = await API.graphql(graphqlOperation(listListings, {
         filter: {
@@ -127,10 +164,12 @@ export default function Home() {
       if (listings.length > 0) {
         getImages(0, listings, []).then(data => {
           setListings(data);
+          setLoading(false);
         });
       }
     } catch (err) {
       console.log(err);
+      setLoading(false);
     }
   }
 
@@ -197,11 +236,12 @@ export default function Home() {
           <Button className={classes.searchBtn} type="submit">Search</Button>
         </div>
       </Box>
+      {loading ? <CircularProgress className={classes.loading} /> :
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', mt: 5, columnGap: 2, rowGap: 3 }}>
         {listings.map(listing => {
           return (<Box sx={{ justifySelf: mobile && 'center', width: mobile ? '300px' : 'auto' }} gridColumn={mobile ? 'span 3' : 'span 1'} key={listing.id} onClick={() => navigate(`/listings/${listing.id}`)}><ListingItem listing={listing} /></Box>)
         })}
-      </Box>
+      </Box>}
     </div>
   )
 }
