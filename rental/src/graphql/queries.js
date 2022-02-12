@@ -42,6 +42,8 @@ export const getListing = /* GraphQL */ `
       }
       availability
       published
+      bedrooms
+      rating
       createdAt
       updatedAt
     }
@@ -81,6 +83,8 @@ export const listListings = /* GraphQL */ `
         }
         availability
         published
+        bedrooms
+        rating
         createdAt
         updatedAt
       }

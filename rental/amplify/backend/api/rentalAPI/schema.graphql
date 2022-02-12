@@ -52,6 +52,8 @@ type Listing @model {
   reviews: [Review]
   availability: [String]
   published: Boolean!
+  bedrooms: Int!
+  rating: Int
 }
 
 type Booking @model {

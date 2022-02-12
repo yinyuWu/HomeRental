@@ -136,7 +136,7 @@ function CreateDialog(props) {
       return;
     }
     const { key } = await Storage.put(`${uuid()}.jpeg`, thumbnail, { contentType: 'image/*' });
-    const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email'), published: false };
+    const data = { title, address, price: parseInt(price), metadata, thumbnail: key, owner: localStorage.getItem('email'), published: false, bedrooms: numOfBedrooms };
     try {
       await API.graphql(graphqlOperation(createListing, { input: data }));
     } catch (err) {
@@ -387,9 +387,9 @@ export default function MyListings() {
       if (myListings.length > 0) {
         getImages(0, myListings, []).then(data => {
           setListings(data);
-          setLoading(false);
         });
       }
+      setLoading(false);
     } catch (err) {
       console.log('error: ', err);
       setLoading(false);

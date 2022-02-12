@@ -45,6 +45,8 @@ export const createListing = /* GraphQL */ `
       }
       availability
       published
+      bedrooms
+      rating
       createdAt
       updatedAt
     }
@@ -94,6 +96,8 @@ export const updateListing = /* GraphQL */ `
       }
       availability
       published
+      bedrooms
+      rating
       createdAt
       updatedAt
     }
@@ -143,6 +147,8 @@ export const deleteListing = /* GraphQL */ `
       }
       availability
       published
+      bedrooms
+      rating
       createdAt
       updatedAt
     }

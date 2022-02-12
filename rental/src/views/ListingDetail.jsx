@@ -152,17 +152,10 @@ export default function ListingDetail(props) {
         id: params.id
       }));
       const detail = listingData.data.getListing;
-      const { title, address, price, metadata, reviews, availability, owner } = detail;
+      const { title, address, price, metadata, reviews, availability, owner, rating } = detail;
       const { street, city, state, postcode, country } = address;
       const { amenities, bathrooms, bedrooms, type, images, totalBeds } = metadata;
-      const listingItem = { title, price, street, city, state, postcode, country, bathrooms, bedrooms, type, totalBeds, reviews, availability, owner };
-      if (reviews && reviews.length > 0) {
-        let total = 0;
-        reviews.forEach(r => {
-          total += r.rating;
-        })
-        listingItem.rating = Math.round(total / reviews.length);
-      }
+      const listingItem = { title, price, street, city, state, postcode, country, bathrooms, bedrooms, type, totalBeds, reviews, availability, owner, rating };
       const amenitiesText = {
         airConditioning: 'Air Conditioning',
         essentials: 'Essentials',
@@ -245,15 +238,18 @@ export default function ListingDetail(props) {
     const metadata = { bathrooms, type, numOfBedrooms: bedrooms.length, bedrooms, amenities, totalBeds, images: listing.imagesURL };
     // update reviews
     let updateReviews;
+    let updateRating;
     const newReview = { ...review };
     if (!newReview.text) newReview.text = '';
-    if (reviews) {
+    if (reviews && listing.rating) {
       updateReviews = reviews;
       updateReviews.push(newReview);
+      updateRating = Math.round((listing.rating * reviews.length + newReview.rating) / (reviews.length + 1));
     } else {
       updateReviews = [newReview];
+      updateRating = newReview.rating;
     }
-    const data = { id: params.id, title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner, reviews: updateReviews };
+    const data = { id: params.id, title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner, reviews: updateReviews, rating: updateRating, bedrooms: bedrooms.length };
     console.log('send review', data);
     try {
       const response = await API.graphql(graphqlOperation(updateListing, { input: data }));
@@ -264,6 +260,7 @@ export default function ListingDetail(props) {
     }
     setReviewLoading(false);
     setReview({ ...review, rating: 3, text: '' });
+    fetchData();
   }
 
   const handleClose = () => {

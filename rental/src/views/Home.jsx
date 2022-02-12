@@ -132,14 +132,6 @@ export default function Home() {
     return new Promise((resolve, reject) => {
       Storage.get(list[index].thumbnail).then((imageURL) => {
         list[index].thumbnailURL = imageURL;
-        if (list[index].reviews && list[index].reviews.length > 0) {
-          // calculate average rating
-          let total = 0;
-          list[index].reviews.forEach(d => {
-            total += d.rating;
-          })
-          list[index].rating = Math.round(total / list[index].reviews.length);
-        }
         res.push(list[index]);
         if (index === list.length - 1) {
           resolve(res);
@@ -164,9 +156,9 @@ export default function Home() {
       if (listings.length > 0) {
         getImages(0, listings, []).then(data => {
           setListings(data);
-          setLoading(false);
         });
       }
+      setLoading(false);
     } catch (err) {
       console.log(err);
       setLoading(false);

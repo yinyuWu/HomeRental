@@ -190,7 +190,7 @@ export default function EditListing() {
       listing.thumbnail = resultThumbnail.key;
     }
     const metadata = { bathrooms, type, numOfBedrooms, bedrooms, amenities, totalBeds, images: listing.images };
-    data = { title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner: localStorage.getItem('email') };
+    data = { title, address, price: parseInt(price), metadata, thumbnail: listing.thumbnail, owner: localStorage.getItem('email'), bedrooms: numOfBedrooms };
     data.id = params.id;
     // console.log(data);
     try {
